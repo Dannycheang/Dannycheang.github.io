@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ConfidLab - AI+VR Virtual Interview</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #2A5C83;
+            --secondary-color: #5BA4E6;
+            --vr-bg: #1A1A1A;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+            display: flex;
+            height: 100vh;
+            background: var(--vr-bg);
+            color: white;
+        }
+
+        /* 增强版侧边栏 */
+        .sidebar {
+            width: 200px;
+            background: rgba(25, 25, 25, 0.9);
+            padding: 20px 15px;
+            border-right: 1px solid #333;
+        }
+
+        .nav-item {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            color: #888;
+        }
+
+        .nav-item.active {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .nav-item i {
+            margin-right: 15px;
+            font-size: 1.2em;
+        }
+
+        /* 聊天容器 */
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+        }
+
+        .message {
+            max-width: 75%;
+            margin: 15px 0;
+            padding: 15px 20px;
+            border-radius: 20px;
+        }
+
+        .ai-message {
+            background: #2D2D2D;
+            border: 1px solid #3D3D3D;
+            margin-right: auto;
+        }
+
+        .user-message {
+            background: var(--primary-color);
+            margin-left: auto;
+        }
+
+        /* 输入区域 */
+        .input-container {
+            display: flex;
+            padding: 20px;
+            gap: 10px;
+        }
+
+        #userInput {
+            flex: 1;
+            padding: 15px;
+            background: #333;
+            border: none;
+            border-radius: 12px;
+            color: white;
+        }
+
+        .send-btn {
+            background: var(--secondary-color);
+            color: white;
+            border: none;
+            padding: 0 25px;
+            border-radius: 12px;
+            cursor: pointer;
+        }
+
+        /* 功能面板 */
+        .panel {
+            display: none;
+            width: 300px;
+            padding: 20px;
+            border-left: 1px solid #333;
+        }
+
+        .panel.active {
+            display: block;
+        }
+
+        /* VR场景 */
+        .vr-scene {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0,0,0,0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+    </style>
+</head>
+<body>
+    <!-- 增强版侧边栏 -->
+     
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <h2>  ( ºωº )  ConfidLab</h2>
+        <div class="nav-item active" onclick="showPanel('chat')">
+            <i class="fas fa-comments"></i> Current Chat
+        </div>
+        <div class="nav-item" onclick="showPanel('history')">
+            <i class="fas fa-history"></i> History
+        </div>
+        <div class="nav-item" onclick="showPanel('favorites')">
+            <i class="fas fa-star"></i> Favorites
+        </div>
+        <div class="nav-item" onclick="showPanel('settings')">
+            <i class="fas fa-cog"></i> Settings
+        </div>
+    </nav>
+
+    <!-- 主聊天界面 -->
+    <div class="chat-container">
+        <div class="chat-messages" id="chatMessages">
+            <div class="message ai-message">
+                Welcome to ConfidLab! What interview challenges are you preparing for these days? Please let me know your interview scenario, I will understand you and arrange for the interview scenario to be sent to your VR device, and after it is over, we can continue to discuss how to improve our interview skills for that scenario! ( ˘ ³˘)♥
+            </div>
+        </div>
+        
+        <div class="input-container">
+            <input type="text" id="userInput" placeholder="Describe your interview scenario...">
+            <button class="send-btn" onclick="processInput()">Send</button>
+        </div>
+    </div>
+
+    <!-- 功能面板 -->
+    <div class="panel" id="historyPanel">
+        <h2>Simulation History</h2>
+        <div class="history-item">
+            <div class="item-title">Technical Interview @ HUAWEI</div>
+            <div class="item-date">2025-04-11 | Score: 84/100</div>
+        </div>
+    </div>
+
+    <div class="panel" id="favoritesPanel">
+        <h2>Favorite Scenarios</h2>
+        <div class="favorite-item">
+            <i class="fas fa-briefcase"></i> Product Manager Interview
+        </div>
+    </div>
+
+    <div class="panel" id="settingsPanel">
+        <h2>User Settings</h2>
+        <div class="setting-item">
+            <label>Language: </label>
+            <select>
+                <option>English</option>
+                <option>中文</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- VR场景 -->
+    <div class="vr-scene" id="vrScene">
+        <div class="scene-content">
+            <h2>Simulation in Progress</h2>
+            <div class="scene-placeholder"></div>
+            <button class="send-btn" onclick="endSimulation()">End Session</button>
+        </div>
+    </div>
+
+    <script>
+        // AI响应模板
+        const scenarioExamples = {
+            technical: [
+                "3 interviewers with coding challenges",
+                "Whiteboard design session",
+                "System design question"
+            ],
+            behavioral: [
+                "Leadership experience questions",
+                "Conflict resolution scenarios",
+                "Teamwork simulation.     <br>Did I capture the core elements accurately? If my understanding is the same as yours, you can click the “Confirm Scenario” button below to start the mock interview, the mock interview scenario will be sent to your VR device, put it on and start the mock interview, I will collect the relevant data in the background and give you feedback at the end of the interview; if there is a discrepancy between my understanding and your meaning, you can continue to express your meaning, I will further understand your meaning and make adjustments."
+            ]
+        };
+
+        function showPanel(panel) {
+            document.querySelectorAll('.nav-item').forEach(item => 
+                item.classList.remove('active'));
+            document.querySelectorAll(`.nav-item`)[
+                {chat:0, history:1, favorites:2, settings:3}[panel]
+            ].classList.add('active');
+            
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            if(panel !== 'chat') document.getElementById(panel+'Panel').classList.add('active');
+        }
+
+        function processInput() {
+            const input = document.getElementById('userInput').value;
+            if(!input) return;
+            
+            addMessage(input, 'user');
+            generateAIReply(input);
+            document.getElementById('userInput').value = '';
+        }
+
+        function generateAIReply(userInput) {
+            let scenarioType = userInput.toLowerCase().includes('technical') ? 'technical' : 'behavioral';
+            
+            const response = `Understood! You described a detailed scenario of interviewing at a financial institution, focusing on challenges like market analysis questions, behavioral assessments, and demonstrating technical expertise. According to your description, we'll create a ${scenarioType} interview with:
+                • ${scenarioExamples[scenarioType].join('\n                • ')}
+                <button class="send-btn" style="margin-top:10px" 
+                        onclick="launchVRScene('${scenarioType}')">Confirm Scenario</button>`;
+            
+            addMessage(response, 'ai');
+        }
+
+        function launchVRScene(type) {
+            document.getElementById('vrScene').style.display = 'flex';
+        }
+
+        function endSimulation() {
+            document.getElementById('vrScene').style.display = 'none';
+            const feedback = `Feedback:
+                <div class="feedback-container">
+    <h2>Overall Impression</h2>
+    
+    <h3>Strengths:</h3>
+    <ul>
+        <li><strong>Technical foundational knowledge</strong> (e.g., explaining DCF mechanics, P/E multiples)</li>
+        <li><strong>Engaging storytelling</strong> in behavioral responses (e.g., "I noticed you linked teamwork to closing a deal under deadline")</li>
+        <li><strong>Professional demeanor</strong>: Calm under pressure, maintained eye contact, and structured answers logically</li>
+    </ul>
+
+    <h3>Critical Improvement Areas:</h3>
+    <ul>
+        <li>Depth in Technical Responses</li>
+        <li>Alignment with Firm-Specific Culture</li>
+        <li>Proactive Narrative Control</li>
+    </ul>
+
+    <h2>1. Technical Depth: "Competent but Surface-Level"</h2>
+    <h3>Example:</h3>
+    <p>When asked, "How would you adjust a DCF for a cyclical company?" your answer covered basic beta adjustments but missed:</p>
+    <ul>
+        <li><strong>Industry-specific drivers</strong> (e.g., normalizing EBITDA over a full cycle)</li>
+        <li><strong>Nuanced risks</strong> (e.g., debt covenant breaches in downturns)</li>
+    </ul>
+    <h3>Improvement:</h3>
+    <ul>
+        <li><strong>Use frameworks</strong>: Structure answers with "3-Point Rigor" (e.g., "Adjustments fall into <em>historical normalization</em>, <em>forward-looking macro factors</em>, and <em>stress-testing liquidity</em>")</li>
+        <li><strong>Practice with real data</strong>: Use SEC filings (e.g., analyze Ford’s cyclicality in 2020) to build muscle memory</li>
+    </ul>
+
+    <h2>2. Cultural Alignment: "Generic Fit Answers"</h2>
+    <h3>Example:</h3>
+    <p>To "Why our bank?" you cited "reputation and deal flow" but lacked:</p>
+    <ul>
+        <li><strong>Specifics</strong> (e.g., "Your energy sector M&A team pioneered SPAC integrations")</li>
+        <li><strong>Personal resonance</strong> (e.g., "My CFA research on renewables aligns with your ESG-focused deals")</li>
+    </ul>
+    <h3>Improvement:</h3>
+    <ul>
+        <li><strong>Reverse-engineer their website</strong>: Memorize 2-3 recent deals or initiatives and tie them to your background</li>
+        <li><strong>Mirror their language</strong>: If the firm uses "client-first innovation," repeat that phrase when describing your values</li>
+    </ul>
+
+    <h2>3. Narrative Control: "Reactive vs. Strategic"</h2>
+    <h3>Example:</h3>
+    <p>When asked about a weakness, you used the cliché "I’m a perfectionist," which:</p>
+    <ul>
+        <li><strong>Fails to differentiate</strong>: Interviewers hear this daily</li>
+        <li><strong>Missed an opportunity</strong> to showcase growth (e.g., "I once overlooked macro risks in a model; now I built a checklist for Fed policy changes")</li>
+    </ul>
+    <h3>Improvement:</h3>
+    <ul>
+        <li><strong>Pre-wire 3 stories</strong>: Use the <em>"Challenge-Action-Result-Learning" (CARL)</em> template for weaknesses, failures, or conflicts</li>
+        <li><strong>Redirect politely</strong>: If asked a vague question, pivot to a prepared strength (e.g., "That’s a great question. My approach is always to prioritize X, like in [example]...")</li>
+    </ul>
+
+    <h2>Bonus: Subtle Power Moves</h2>
+    <ul>
+        <li><strong>Ask "smart follow-ups"</strong>: Post-case study, ask, "How does your team balance IRR hurdles with ESG mandates?" (shows curiosity about their challenges)</li>
+        <li><strong>Close with urgency</strong>: Instead of "Thank you," say, "I’d love to discuss how my experience in Y can contribute to your Z initiative – when can we next connect?"</li>
+    </ul>
+
+    <h2>Practice Drill</h2>
+    <h3>Next 72 Hours:</h3>
+    <ul>
+        <li><strong>Mock Interviews</strong>: Focus on 1 technical topic (e.g., LBOs) and 1 behavioral theme (e.g., leadership)</li>
+        <li><strong>Tape Yourself</strong>: Record answers to "Walk me through a valuation" and critique pauses/filler words</li>
+        <li><strong>Read Aloud</strong>: Practice the bank’s annual report to internalize their tone and priorities</li>
+    </ul>
+</div>
+                <br>You can start a new conversation by clicking the “New Session” button below, or if you still have questions, you can continue the discussion with me.<button class="send-btn" onclick="processInput()">New Session</button>`;
+            
+            addMessage(feedback, 'ai');
+        }
+
+        function addMessage(content, sender) {
+            const div = document.createElement('div');
+            div.className = `message ${sender}-message`;
+            div.innerHTML = content;
+            document.getElementById('chatMessages').appendChild(div);
+            window.scrollTo(0, document.body.scrollHeight);
+        }
+    </script>
+</body>
+</html>
